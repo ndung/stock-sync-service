@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-public class VendorBReader {
+public class VendorBReader implements VendorClient {
 
     private static final Logger log = LoggerFactory.getLogger(VendorBReader.class);
 
@@ -25,6 +25,11 @@ public class VendorBReader {
 
     public VendorBReader(@Value("${vendorB.csvPath:/tmp/vendor-b/stock.csv}") String csvPath) {
         this.csvPath = csvPath;
+    }
+
+    @Override
+    public String vendorName() {
+        return "B";
     }
 
     public List<VendorProduct> fetch() {

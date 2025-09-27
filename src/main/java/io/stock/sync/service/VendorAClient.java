@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
@@ -17,7 +18,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Component
-public class VendorAClient {
+public class VendorAClient implements VendorClient {
 
     private static final Logger log = LoggerFactory.getLogger(VendorAClient.class);
 
@@ -28,6 +29,11 @@ public class VendorAClient {
                          @Value("${vendorA.url:http://localhost:8080/mock/vendor-a/products}") String vendorAUrl) {
         this.restTemplate = restTemplate;
         this.vendorAUrl = vendorAUrl;
+    }
+
+    @Override
+    public String vendorName() {
+        return "A";
     }
 
     @Retryable(
@@ -44,6 +50,12 @@ public class VendorAClient {
                 .filter(Objects::nonNull)
                 .map(i -> new VendorProduct(i.sku, i.name, i.stockQuantity, "VENDOR_A"))
                 .collect(Collectors.toList());
+    }
+
+    @Recover
+    public List<VendorProduct> recover(RestClientException ex) {
+        log.error("Vendor A fetch failed after retries: {}", ex.getMessage());
+        return List.of(); // degrade gracefully
     }
 
     static class VendorAItem {

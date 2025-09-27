@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,25 +18,24 @@ public class SyncService {
 
     private static final Logger log = LoggerFactory.getLogger(SyncService.class);
 
-    private final VendorAClient vendorAClient;
-    private final VendorBReader vendorBReader;
+    private final List<VendorClient> vendorClients;     // <-- all vendors discovered by Spring
     private final ProductRepository productRepository;
     private final StockOutEventRepository stockOutEventRepository;
 
-    public SyncService(VendorAClient vendorAClient, VendorBReader vendorBReader,
+    public SyncService(List<VendorClient> vendorClients,     // <-- all vendors discovered by Spring
                        ProductRepository productRepository, StockOutEventRepository stockOutEventRepository) {
-        this.vendorAClient = vendorAClient;
-        this.vendorBReader = vendorBReader;
+        this.vendorClients = vendorClients;
         this.productRepository = productRepository;
         this.stockOutEventRepository = stockOutEventRepository;
     }
 
     @Transactional
     public void syncAll() {
-        List<VendorProduct> combined = new ArrayList<>();
-        combined.addAll(vendorAClient.fetch());
-        combined.addAll(vendorBReader.fetch());
-        processBatch(combined);
+        vendorClients.forEach(client -> {
+            List<VendorProduct> batch = client.fetch();
+            log.info("Fetched {} items from {}", batch.size(), client.vendorName());
+            processBatch(batch);
+        });
     }
 
     @Transactional
