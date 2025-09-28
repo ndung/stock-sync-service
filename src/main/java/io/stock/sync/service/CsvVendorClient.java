@@ -6,9 +6,6 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import java.io.File;
 import java.io.FileReader;
 import java.io.Reader;
@@ -16,44 +13,43 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-@Component
-public class VendorBReader implements VendorClient {
+public class CsvVendorClient implements VendorClient {
 
-    private static final Logger log = LoggerFactory.getLogger(VendorBReader.class);
+    private static final Logger log = LoggerFactory.getLogger(CsvVendorClient.class);
 
-    private final String csvPath;
+    private final String name;
+    private final String path;
 
-    public VendorBReader(@Value("${vendorB.csvPath:/tmp/vendor-b/stock.csv}") String csvPath) {
-        this.csvPath = csvPath;
+    public CsvVendorClient(String name, String path) {
+        this.name = name;
+        this.path = path;
     }
 
     @Override
-    public String vendorName() {
-        return "B";
-    }
+    public String vendorName() { return name; }
 
+    @Override
     public List<VendorProduct> fetch() {
-        File f = new File(csvPath);
+        File f = new File(path);
         if (!f.exists()) {
-            log.warn("Vendor B CSV not found at {}, returning empty list", csvPath);
+            log.warn("CSV for {} not found at {}, returning empty", name, path);
             return List.of();
         }
         List<VendorProduct> list = new ArrayList<>();
         try (Reader reader = new FileReader(f, StandardCharsets.UTF_8);
-             CSVParser parser = CSVFormat.DEFAULT
-                     .builder()
+             CSVParser parser = CSVFormat.DEFAULT.builder()
                      .setHeader("sku","name","stockQuantity")
                      .setSkipHeaderRecord(true)
                      .build()
                      .parse(reader)) {
             for (CSVRecord rec : parser) {
                 String sku = rec.get("sku").trim();
-                String name = rec.get("name").trim();
+                String pname = rec.get("name").trim();
                 Integer qty = Integer.valueOf(rec.get("stockQuantity").trim());
-                list.add(new VendorProduct(sku, name, qty, "VENDOR_B"));
+                list.add(new VendorProduct(sku, pname, qty, name));
             }
         } catch (Exception e) {
-            log.error("Failed reading Vendor B CSV at {}: {}", csvPath, e.getMessage(), e);
+            log.error("CSV read error for {} at {}: {}", name, path, e.getMessage(), e);
         }
         return list;
     }

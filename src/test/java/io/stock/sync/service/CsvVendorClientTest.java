@@ -1,6 +1,5 @@
-package io.stock.sync;
+package io.stock.sync.service;
 
-import io.stock.sync.service.VendorBReader;
 import io.stock.sync.service.dto.VendorProduct;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -12,7 +11,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class VendorBReaderTest {
+class CsvVendorClientTest {
 
     @TempDir
     Path tmp;
@@ -26,46 +25,49 @@ class VendorBReaderTest {
             XYZ456,Product B,0
             """);
 
-        VendorBReader reader = new VendorBReader(csv.toString());
+        CsvVendorClient client = new CsvVendorClient("VENDOR_B", csv.toString());
 
-        List<VendorProduct> products = reader.fetch();
+        List<VendorProduct> products = client.fetch();
 
         assertThat(products).hasSize(2);
-        assertThat(products.get(0).sku()).isEqualTo("ABC123");
-        assertThat(products.get(0).name()).isEqualTo("Product A");
-        assertThat(products.get(0).stockQuantity()).isEqualTo(10);
-        assertThat(products.get(0).vendor()).isEqualTo("VENDOR_B");
-        assertThat(products.get(1).sku()).isEqualTo("XYZ456");
-        assertThat(products.get(1).stockQuantity()).isZero();
+
+        VendorProduct p1 = products.get(0);
+        assertThat(p1.sku()).isEqualTo("ABC123");
+        assertThat(p1.name()).isEqualTo("Product A");
+        assertThat(p1.stockQuantity()).isEqualTo(10);
+        assertThat(p1.vendor()).isEqualTo("VENDOR_B");
+
+        VendorProduct p2 = products.get(1);
+        assertThat(p2.sku()).isEqualTo("XYZ456");
+        assertThat(p2.stockQuantity()).isEqualTo(0);
     }
 
     @Test
     void fetch_missingFile_returnsEmptyList() {
-        // point to a non-existent file
         Path csv = tmp.resolve("does-not-exist.csv");
 
-        VendorBReader reader = new VendorBReader(csv.toString());
+        CsvVendorClient client = new CsvVendorClient("VENDOR_B", csv.toString());
 
-        List<VendorProduct> products = reader.fetch();
+        List<VendorProduct> products = client.fetch();
 
         assertThat(products).isEmpty();
     }
 
     @Test
-    void fetch_malformedRow_logsAndReturnsPartial() throws IOException {
+    void fetch_malformedRow_returnsParsedSoFar() throws IOException {
         Path csv = tmp.resolve("bad.csv");
-        // second row has non-integer stockQuantity → NumberFormatException
+        // Second row has non-integer stockQuantity → NumberFormatException during iteration
         Files.writeString(csv, """
             sku,name,stockQuantity
             GOOD1,Good Product,5
             BAD99,Bad Product,notanint
             """);
 
-        VendorBReader reader = new VendorBReader(csv.toString());
+        CsvVendorClient client = new CsvVendorClient("VENDOR_B", csv.toString());
 
-        List<VendorProduct> products = reader.fetch();
+        List<VendorProduct> products = client.fetch();
 
-        // Implementation logs an error and returns whatever was parsed before the failure
+        // Implementation logs the error and returns only successfully parsed records
         assertThat(products).hasSize(1);
         assertThat(products.get(0).sku()).isEqualTo("GOOD1");
         assertThat(products.get(0).stockQuantity()).isEqualTo(5);

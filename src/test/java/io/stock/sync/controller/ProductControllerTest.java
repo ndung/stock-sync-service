@@ -1,4 +1,4 @@
-package io.stock.sync;
+package io.stock.sync.controller;
 
 import io.stock.sync.model.Product;
 import io.stock.sync.repository.ProductRepository;

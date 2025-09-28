@@ -24,12 +24,15 @@ sync:
   enabled: true
   cron: "0 */1 * * * *"  # every minute
 
-# Vendor endpoints
-vendorA:
-  url: http://localhost:8080/mock/vendor-a/products
-
-vendorB:
-  csvPath: /tmp/vendor-b/stock.csv
+vendors:
+  rest:
+    - name: VENDOR_A
+      url: http://localhost:8080/mock/vendor-a/products
+      enabled: true   # optional, true by default
+  csv:
+    - name: VENDOR_B
+      path: /tmp/vendor-b/stock.csv
+      enabled: true   # optional, true by default
 
 # springdoc OpenAPI
 springdoc:

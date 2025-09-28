@@ -1,4 +1,4 @@
-package io.stock.sync;
+package io.stock.sync.service;
 
 import io.stock.sync.model.Product;
 import io.stock.sync.model.StockOutEvent;
